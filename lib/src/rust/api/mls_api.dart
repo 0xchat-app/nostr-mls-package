@@ -55,11 +55,18 @@ Future<String> createGroup(
 
 /// Create a message for a group
 /// Parameters: group_id - byte array of group ID, rumor_event_string - JSON string of the event
+///             expiration - optional expiration timestamp, k - optional kind tag
 /// Returns: JSON formatted message information
 Future<String> createMessageForGroup(
-        {required List<int> groupId, required String rumorEventString}) =>
+        {required List<int> groupId,
+        required String rumorEventString,
+        String? expiration,
+        String? k}) =>
     RustLib.instance.api.crateApiMlsApiCreateMessageForGroup(
-        groupId: groupId, rumorEventString: rumorEventString);
+        groupId: groupId,
+        rumorEventString: rumorEventString,
+        expiration: expiration,
+        k: k);
 
 /// Create a commit message for a group
 /// Parameters: group_id - byte array of group ID, serialized_commit - serialized commit

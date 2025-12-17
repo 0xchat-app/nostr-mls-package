@@ -277,6 +277,8 @@ fn wire__crate__api__mls_api__create_message_for_group_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             let api_group_id = <Vec<u8>>::sse_decode(&mut deserializer);
             let api_rumor_event_string = <String>::sse_decode(&mut deserializer);
+            let api_expiration = <Option<String>>::sse_decode(&mut deserializer);
+            let api_k = <Option<String>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, flutter_rust_bridge::for_generated::anyhow::Error>(
@@ -284,6 +286,8 @@ fn wire__crate__api__mls_api__create_message_for_group_impl(
                         let output_ok = crate::api::mls_api::create_message_for_group(
                             api_group_id,
                             api_rumor_event_string,
+                            api_expiration,
+                            api_k,
                         )?;
                         Ok(output_ok)
                     })(),

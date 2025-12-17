@@ -214,8 +214,14 @@ pub fn create_group(
 
 /// Create a message for a group
 /// Parameters: group_id - byte array of group ID, rumor_event_string - JSON string of the event
+///             expiration - optional expiration timestamp, k - optional kind tag
 /// Returns: JSON formatted message information
-pub fn create_message_for_group(group_id: Vec<u8>, rumor_event_string: String) -> Result<String> {
+pub fn create_message_for_group(
+    group_id: Vec<u8>,
+    rumor_event_string: String,
+    expiration: Option<String>,
+    k: Option<String>,
+) -> Result<String> {
     let mls = NOSTR_MLS
         .lock()
         .map_err(|_| anyhow!("Failed to acquire NOSTR_MLS lock"))?;
@@ -228,8 +234,25 @@ pub fn create_message_for_group(group_id: Vec<u8>, rumor_event_string: String) -
 
     let group_id = GroupId::from_slice(&group_id);
 
+    // Build additional tags
+    let mut additional_tags = Vec::new();
+    if let Some(exp) = expiration {
+        additional_tags.push(Tag::custom(TagKind::Expiration, [exp]));
+    }
+    if let Some(kind_str) = k {
+        additional_tags.push(Tag::custom(TagKind::Kind, [kind_str]));
+    }
+
     let event = nostr_mls
-        .create_message(&group_id, rumor_event)
+        .create_message(
+            &group_id,
+            rumor_event,
+            if additional_tags.is_empty() {
+                None
+            } else {
+                Some(additional_tags)
+            },
+        )
         .map_err(|e| anyhow!("Failed to create message: {}", e))?;
 
     let event_json =

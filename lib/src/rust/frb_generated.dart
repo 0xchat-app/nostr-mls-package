@@ -102,7 +102,10 @@ abstract class RustLibApi extends BaseApi {
       {required String publicKey, List<String>? relay, String? client});
 
   Future<String> crateApiMlsApiCreateMessageForGroup(
-      {required List<int> groupId, required String rumorEventString});
+      {required List<int> groupId,
+      required String rumorEventString,
+      String? expiration,
+      String? k});
 
   Future<String> crateApiMlsApiExportSecret({required List<int> groupId});
 
@@ -318,12 +321,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<String> crateApiMlsApiCreateMessageForGroup(
-      {required List<int> groupId, required String rumorEventString}) {
+      {required List<int> groupId,
+      required String rumorEventString,
+      String? expiration,
+      String? k}) {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
         final serializer = SseSerializer(generalizedFrbRustBinding);
         sse_encode_list_prim_u_8_loose(groupId, serializer);
         sse_encode_String(rumorEventString, serializer);
+        sse_encode_opt_String(expiration, serializer);
+        sse_encode_opt_String(k, serializer);
         pdeCallFfi(generalizedFrbRustBinding, serializer,
             funcId: 6, port: port_);
       },
@@ -332,7 +340,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         decodeErrorData: sse_decode_AnyhowException,
       ),
       constMeta: kCrateApiMlsApiCreateMessageForGroupConstMeta,
-      argValues: [groupId, rumorEventString],
+      argValues: [groupId, rumorEventString, expiration, k],
       apiImpl: this,
     ));
   }
@@ -340,7 +348,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiMlsApiCreateMessageForGroupConstMeta =>
       const TaskConstMeta(
         debugName: "create_message_for_group",
-        argNames: ["groupId", "rumorEventString"],
+        argNames: ["groupId", "rumorEventString", "expiration", "k"],
       );
 
   @override
