@@ -240,7 +240,8 @@ pub fn create_message_for_group(
         additional_tags.push(Tag::custom(TagKind::Expiration, [exp]));
     }
     if let Some(kind_str) = k {
-        additional_tags.push(Tag::custom(TagKind::Kind, [kind_str]));
+        // Use Tag::parse to create a custom tag with "k" as the tag name
+        additional_tags.push(Tag::parse(["k", &kind_str]).map_err(|e| anyhow!("Failed to parse kind tag: {}", e))?);
     }
 
     let event = nostr_mls
@@ -753,7 +754,7 @@ pub fn find_encoded_keypackage_from_welcome_event(
         .map_err(|e| anyhow!("Failed to find encoded key package: {}", e))?;
 
     let result = match (matched_index, keypackage_info) {
-        (Some(index), Some(info)) => json!({
+        (Some(index), Some(_info)) => json!({
             "found": true,
             "matched_index": index,
             "keypackage_info": null
