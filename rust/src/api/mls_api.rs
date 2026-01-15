@@ -16,7 +16,7 @@ lazy_static! {
 /// Returns a structured error message in JSON format if it's an InvalidLifetime error,
 /// otherwise returns a generic error message
 /// [member_pubkey] Optional pubkey of the member whose keypackage is being parsed
-fn handle_key_package_parse_error(e: impl std::error::Error, member_pubkey: Option<String>) -> anyhow::Error {
+fn handle_key_package_parse_error(e: impl std::error::Error + Send + Sync + 'static, member_pubkey: Option<String>) -> anyhow::Error {
     // Convert to anyhow::Error first to check the error chain
     let anyhow_err = anyhow::Error::from(e);
     let error_str = format!("{:?}", anyhow_err);
@@ -172,14 +172,14 @@ pub fn create_group(
         .ok_or_else(|| anyhow!("NostrMls is not initialized"))?;
 
     let member_pubkeys: Result<Vec<PublicKey>> = group_members_pubkeys
-        .into_iter()
-        .map(|k| PublicKey::from_str(&k).map_err(|e| anyhow!("Invalid member pubkey: {}", e)))
+        .iter()
+        .map(|k| PublicKey::from_str(k).map_err(|e| anyhow!("Invalid member pubkey: {}", e)))
         .collect();
     let member_pubkeys = member_pubkeys?;
 
     let mut member_key_packages = Vec::new();
     for (index, serialized_key_package) in group_members_serialized_key_packages.iter().enumerate() {
-        let member_pubkey = group_members_pubkeys.get(index).cloned();
+        let member_pubkey = group_members_pubkeys.get(index).map(|s| s.clone());
         let key_package = nostr_mls
             .parse_serialized_key_package(serialized_key_package)
             .map_err(|e| handle_key_package_parse_error(e, member_pubkey))?;
