@@ -12,6 +12,35 @@ lazy_static! {
     static ref NOSTR_MLS: Mutex<Option<NostrMls<NostrMlsSqliteStorage>>> = Mutex::new(None);
 }
 
+/// Helper function to handle key package parsing errors
+/// Returns a structured error message in JSON format if it's an InvalidLifetime error,
+/// otherwise returns a generic error message
+/// [member_pubkey] Optional pubkey of the member whose keypackage is being parsed
+fn handle_key_package_parse_error(e: impl std::error::Error, member_pubkey: Option<String>) -> anyhow::Error {
+    // Convert to anyhow::Error first to check the error chain
+    let anyhow_err = anyhow::Error::from(e);
+    let error_str = format!("{:?}", anyhow_err);
+    
+    // Check if the error is KeyPackageVerifyError::InvalidLifetime
+    // The error should contain "KeyPackageVerify" and "InvalidLifetime" in its debug representation
+    if error_str.contains("KeyPackageVerify") && 
+       (error_str.contains("InvalidLifetime") || error_str.contains("invalid lifetime") || error_str.contains("expired")) {
+        let mut error_json = json!({
+            "error_type": "KEY_PACKAGE_INVALID_LIFETIME",
+            "message": "The key package lifetime is invalid or expired"
+        });
+        
+        // Add member_pubkey if provided
+        if let Some(pubkey) = member_pubkey {
+            error_json["member_pubkey"] = json!(pubkey);
+        }
+        
+        anyhow::anyhow!("{}", error_json.to_string())
+    } else {
+        anyhow::anyhow!("Failed to parse key package: {}", anyhow_err)
+    }
+}
+
 /// Initialize the NostrMls instance
 /// Returns: JSON {"status": "success"} on success, or error message on failure
 pub fn init_nostr_mls(path: String, identity: Option<String>, password: Option<String>) -> Result<String> {
@@ -149,10 +178,11 @@ pub fn create_group(
     let member_pubkeys = member_pubkeys?;
 
     let mut member_key_packages = Vec::new();
-    for serialized_key_package in &group_members_serialized_key_packages {
+    for (index, serialized_key_package) in group_members_serialized_key_packages.iter().enumerate() {
+        let member_pubkey = group_members_pubkeys.get(index).cloned();
         let key_package = nostr_mls
-            .parse_serialized_key_package(&serialized_key_package)
-            .map_err(|e| anyhow!("Failed to parse key package: {}", e))?;
+            .parse_serialized_key_package(serialized_key_package)
+            .map_err(|e| handle_key_package_parse_error(e, member_pubkey))?;
         member_key_packages.push(key_package);
     }
 
@@ -601,9 +631,10 @@ pub fn add_members(group_id: Vec<u8>, serialized_key_packages: Vec<String>) -> R
 
     let mut key_packages = Vec::new();
     for serialized_key_package in &serialized_key_packages {
+        // For add_members, we don't have member pubkey information, so pass None
         let key_package = nostr_mls
-            .parse_serialized_key_package(&serialized_key_package)
-            .map_err(|e| anyhow!("Failed to parse key package: {}", e))?;
+            .parse_serialized_key_package(serialized_key_package)
+            .map_err(|e| handle_key_package_parse_error(e, None))?;
         key_packages.push(key_package);
     }
 
@@ -704,9 +735,10 @@ pub fn get_key_package_from_storage(serialized_key_package: String) -> Result<St
         .ok_or_else(|| anyhow!("NostrMls is not initialized"))?;
 
     // First parse the serialized key package
+    // For get_key_package_from_storage, we don't have member pubkey information, so pass None
     let key_package = nostr_mls
         .parse_serialized_key_package(&serialized_key_package)
-        .map_err(|e| anyhow!("Failed to parse key package: {}", e))?;
+        .map_err(|e| handle_key_package_parse_error(e, None))?;
 
     // Then try to get it from storage
     let key_package_bundle = nostr_mls
