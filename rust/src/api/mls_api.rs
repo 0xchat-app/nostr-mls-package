@@ -23,8 +23,7 @@ fn handle_key_package_parse_error(e: impl std::error::Error + Send + Sync + 'sta
     
     // Check if the error is KeyPackageVerifyError::InvalidLifetime
     // The error should contain "KeyPackageVerify" and "InvalidLifetime" in its debug representation
-    if error_str.contains("KeyPackageVerify") && 
-       (error_str.contains("InvalidLifetime") || error_str.contains("invalid lifetime") || error_str.contains("expired")) {
+    if error_str.contains("The lifetime of the leaf node is not valid") {
         let mut error_json = json!({
             "error_type": "KEY_PACKAGE_INVALID_LIFETIME",
             "message": "The key package lifetime is invalid or expired"
