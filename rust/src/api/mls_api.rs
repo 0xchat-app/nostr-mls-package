@@ -104,6 +104,7 @@ pub fn create_key_package_for_event(
     public_key: String,
     relay: Option<Vec<String>>,
     client: Option<String>,
+    lifetime_seconds: Option<u64>,
 ) -> Result<String> {
     let mls = NOSTR_MLS
         .lock()
@@ -125,7 +126,7 @@ pub fn create_key_package_for_event(
         .unwrap_or(Ok(vec![]))?;
 
     let (encoded_key_package, tags) = nostr_mls
-        .create_key_package_for_event(&public_key, relay, client.as_deref().unwrap_or(""))
+        .create_key_package_for_event(&public_key, relay, client.as_deref().unwrap_or(""), lifetime_seconds)
         .map_err(|e| anyhow!("Failed to create key package: {}", e))?;
 
     let tags_str: Vec<String> = tags.iter().map(|tag| format!("{:?}", tag)).collect();

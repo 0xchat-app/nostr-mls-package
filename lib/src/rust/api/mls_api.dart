@@ -7,6 +7,7 @@ import '../frb_generated.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+// These functions are ignored because they are not marked as `pub`: `handle_key_package_parse_error`
 // These types are ignored because they are not used by any `pub` functions: `NOSTR_MLS`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `deref`, `initialize`
 
@@ -30,9 +31,15 @@ Future<String> getExtensions() =>
 /// Create a key package for an event
 /// Returns: JSON formatted key package information, including encoded key package and tags
 Future<String> createKeyPackageForEvent(
-        {required String publicKey, List<String>? relay, String? client}) =>
+        {required String publicKey,
+        List<String>? relay,
+        String? client,
+        int? lifetimeSeconds}) =>
     RustLib.instance.api.crateApiMlsApiCreateKeyPackageForEvent(
-        publicKey: publicKey, relay: relay, client: client);
+        publicKey: publicKey,
+        relay: relay,
+        client: client,
+        lifetimeSeconds: lifetimeSeconds != null ? BigInt.from(lifetimeSeconds) : null);
 
 /// Create a group
 /// Returns: JSON formatted group information
